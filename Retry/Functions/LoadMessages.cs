@@ -9,7 +9,7 @@ namespace Retry.Functions
         [FunctionName("LoadMessages")]
         public static async Task Run([QueueTrigger("retry-demo-load", Connection = "AzureWebJobsStorage")]string item,
                                      TraceWriter log,
-                                     [Queue("retry-demo", Connection = "AzureWebJobsStorage")] IAsyncCollector<Message> outputQueue)
+                                     [Queue("delayed-retry-demo", Connection = "AzureWebJobsStorage")] IAsyncCollector<Message> outputQueue)
         {
             const int NumberOfMessages = 50;
             for (var i = 0; i < NumberOfMessages; i++)
