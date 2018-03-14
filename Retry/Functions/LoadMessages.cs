@@ -11,7 +11,7 @@ namespace Retry.Functions
                                      TraceWriter log,
                                      [Queue("retry-demo", Connection = "AzureWebJobsStorage")] IAsyncCollector<Message> outputQueue)
         {
-            const int NumberOfMessages = 20;
+            const int NumberOfMessages = 50;
             for (var i = 0; i < NumberOfMessages; i++)
             {
                 var message = CreateMessage(i + 1);
@@ -21,7 +21,7 @@ namespace Retry.Functions
 
         private static Message CreateMessage(int id)
         {
-            return new Message { Id = id.ToString(), Content = $"Message {id}" };
+            return new Message { Id = id, Content = $"Message {id}" };
         }
     }
 }

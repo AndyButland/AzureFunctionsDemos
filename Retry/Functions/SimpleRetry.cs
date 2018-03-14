@@ -1,14 +1,17 @@
 namespace Retry.Functions
 {
     using System;
+    using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host;
+    using Microsoft.WindowsAzure.Storage;
+    using Microsoft.WindowsAzure.Storage.Table;
     using Newtonsoft.Json;
 
     public static class SimpleRetry
     {
         [FunctionName("SimpleRetry")]
-        public static void Run([QueueTrigger("retry-demo", Connection = "AzureWebJobsStorage")]string item,
+        public static async Task Run([QueueTrigger("retry-demo", Connection = "AzureWebJobsStorage")]string item,
                                int dequeueCount,
                                TraceWriter log)
         {
@@ -23,6 +26,8 @@ namespace Retry.Functions
             {
                 log.Info($"Processing message with Id: {message.Id}. Dequeue count: {dequeueCount}.");
                 var result = PerformOperation(message);
+
+                await LogResult(message, dequeueCount, result);
 
                 switch (result)
                 {
@@ -75,6 +80,43 @@ namespace Retry.Functions
 
             // Otherwise simulate success
             return OperationResult.Success;
+        }
+
+        private static async Task LogResult(Message message, int attempt, OperationResult result)
+        {
+            var record = new LogRecord
+                {
+                    PartitionKey = "RetryDemo",
+                    RowKey = Guid.NewGuid().ToString(),
+                    MessageId = message.Id,
+                    Attempt = attempt,
+                    Result = result.ToString()
+                };
+
+            var table = await GetOrCreateTable(GetEnvironmentVariable("LogTableName"));
+            var operation = TableOperation.Insert(record);
+            await table.ExecuteAsync(operation);
+        }
+
+        private static async Task<CloudTable> GetOrCreateTable(string tableName)
+        {
+            var account = GetStorageAccount();
+
+            var client = account.CreateCloudTableClient();
+
+            var table = client.GetTableReference(tableName);
+            await table.CreateIfNotExistsAsync();
+            return table;
+        }
+
+        private static CloudStorageAccount GetStorageAccount()
+        {
+            return CloudStorageAccount.Parse(GetEnvironmentVariable("AzureWebJobsStorage"));
+        }
+
+        public static string GetEnvironmentVariable(string key)
+        {
+            return Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Process);
         }
     }
 }
