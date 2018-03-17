@@ -1,3 +1,4 @@
+
 namespace BackgroundJob.Functions
 {
     using System.Drawing;

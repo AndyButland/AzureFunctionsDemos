@@ -7,6 +7,9 @@ namespace Retry.Functions
 
     public static class SimpleRetry
     {
+        private static readonly string StorageConnectionString = EnvironmentVariables.GetValue("AzureWebJobsStorage");
+        private static readonly string LogTableName = EnvironmentVariables.GetValue("SimpleRetryLogTableName");
+
         [FunctionName("SimpleRetry")]
         public static async Task Run([QueueTrigger("retry-demo", Connection = "AzureWebJobsStorage")]string item,
                                int dequeueCount,
@@ -24,7 +27,7 @@ namespace Retry.Functions
                 var result = MessageHelper.PerformOperation(message);
 
                 await StorageHelper.LogMessageResult(message.Id, dequeueCount, dequeueCount * 5, result,
-                    EnvironmentVariables.GetValue("AzureWebJobsStorage"), EnvironmentVariables.GetValue("SimpleRetryLogTableName"));
+                    StorageConnectionString, LogTableName);
 
                 switch (result)
                 {

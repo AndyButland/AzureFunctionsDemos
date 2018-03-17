@@ -9,6 +9,9 @@ namespace Retry.Functions
     public static class DelayedRetry
     {
         private const string QueueName = "delayed-retry-demo";
+        private static readonly string StorageConnectionString = EnvironmentVariables.GetValue("AzureWebJobsStorage");
+        private static readonly string LogTableName = EnvironmentVariables.GetValue("DelayedRetryLogTableName");
+        private static readonly string MessageStatusTableName = EnvironmentVariables.GetValue("DelayedRetryMessageStatusTableName");
 
         [FunctionName("DelayedRetry")]
         public static async Task Run([QueueTrigger(QueueName, Connection = "AzureWebJobsStorage")]string item,
@@ -27,15 +30,14 @@ namespace Retry.Functions
                     .Select(int.Parse)
                     .ToArray();
 
-                var dequeueCount = await StorageHelper.GetMessageDequeueCount(message.Id,
-                    EnvironmentVariables.GetValue("AzureWebJobsStorage"), EnvironmentVariables.GetValue("DelayedRetryMessageStatusTableName"));
+                var dequeueCount = await StorageHelper.GetMessageDequeueCount(message.Id, StorageConnectionString, MessageStatusTableName);
                 log.Info($"Processing message with Id: {message.Id}. Dequeue count: {dequeueCount}.");
 
                 var result = MessageHelper.PerformOperation(message);
 
                 var delay = visibilityTimeouts.Take(dequeueCount - 1).Sum();
                 await StorageHelper.LogMessageResult(message.Id, dequeueCount, delay, result,
-                    EnvironmentVariables.GetValue("AzureWebJobsStorage"), EnvironmentVariables.GetValue("DelayedRetryLogTableName"));
+                    StorageConnectionString, LogTableName);
 
                 switch (result)
                 {
@@ -56,11 +58,9 @@ namespace Retry.Functions
                         {
                             log.Warning("Message with failed with tranisent error. Putting message back on queue for retrying");
 
-                            await StorageHelper.SaveMessageDequeueCount(message.Id, dequeueCount + 1,
-                                EnvironmentVariables.GetValue("AzureWebJobsStorage"), EnvironmentVariables.GetValue("DelayedRetryMessageStatusTableName"));
+                            await StorageHelper.SaveMessageDequeueCount(message.Id, dequeueCount + 1, StorageConnectionString, MessageStatusTableName);
 
-                            await StorageHelper.AddToQueue(item, TimeSpan.FromSeconds(visibilityTimeouts[dequeueCount - 1]),
-                                EnvironmentVariables.GetValue("AzureWebJobsStorage"), QueueName);
+                            await StorageHelper.AddToQueue(item, TimeSpan.FromSeconds(visibilityTimeouts[dequeueCount - 1]), StorageConnectionString, QueueName);
                         }
 
                         break;
