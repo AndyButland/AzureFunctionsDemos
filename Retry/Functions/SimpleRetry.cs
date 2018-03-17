@@ -2,12 +2,12 @@ namespace Retry.Functions
 {
     using System;
     using System.Threading.Tasks;
+    using Common;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host;
 
     public static class SimpleRetry
     {
-        private static readonly string StorageConnectionString = EnvironmentVariables.GetValue("AzureWebJobsStorage");
         private static readonly string LogTableName = EnvironmentVariables.GetValue("SimpleRetryLogTableName");
 
         [FunctionName("SimpleRetry")]
@@ -26,8 +26,7 @@ namespace Retry.Functions
 
                 var result = MessageHelper.PerformOperation(message);
 
-                await StorageHelper.LogMessageResult(message.Id, dequeueCount, dequeueCount * 5, result,
-                    StorageConnectionString, LogTableName);
+                await StorageHelper.LogMessageResult(LogTableName, message.Id, dequeueCount, dequeueCount * 5, result);
 
                 switch (result)
                 {

@@ -2,14 +2,16 @@
 {
     using System;
     using System.Threading.Tasks;
+    using Common;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Queue;
     using Microsoft.WindowsAzure.Storage.Table;
 
     public static class StorageHelper
     {
-        public static async Task LogMessageResult(int messageId, int attempt, int delay, OperationResult result, 
-                                           string storageConnection, string tableName)
+        private static readonly string StorageConnectionString = EnvironmentVariables.GetValue("AzureWebJobsStorage");
+
+        public static async Task LogMessageResult(string tableName, int messageId, int attempt, int delay, OperationResult result)
         {
             var record = new MessageResultLogRecord
                 {
@@ -21,13 +23,12 @@
                     Result = result.ToString()
                 };
 
-            var table = await GetOrCreateTable(storageConnection, tableName);
+            var table = await GetOrCreateTable(tableName);
             var operation = TableOperation.Insert(record);
             await table.ExecuteAsync(operation);
         }
 
-        public static async Task SaveMessageDequeueCount(int messageId, int attempt,
-                                                         string storageConnection, string tableName)
+        public static async Task SaveMessageDequeueCount(string tableName, int messageId, int attempt)
         {
             var record = new MessageStatusRecord
                 {
@@ -36,14 +37,14 @@
                     DequeueCount = attempt
                 };
 
-            var table = await GetOrCreateTable(storageConnection, tableName);
+            var table = await GetOrCreateTable(tableName);
             var operation = TableOperation.InsertOrReplace(record);
             await table.ExecuteAsync(operation);
         }
 
-        public static async Task<int> GetMessageDequeueCount(int messageId, string storageConnection, string tableName)
+        public static async Task<int> GetMessageDequeueCount(string tableName, int messageId)
         {
-            var table = await GetOrCreateTable(storageConnection, tableName);
+            var table = await GetOrCreateTable(tableName);
 
             var operation = TableOperation.Retrieve<MessageStatusRecord>("RetryDemo", messageId.ToString());
             var result = await table.ExecuteAsync(operation);
@@ -52,17 +53,17 @@
             return typedResult?.DequeueCount ?? 1;
         }
 
-        public static async Task AddToQueue(string messageContent, TimeSpan visibilityDelay, string storageConnection, string queueName)
+        public static async Task AddToQueue(string queueName, string messageContent, TimeSpan visibilityDelay)
         {
-            var queue = await GetOrCreateQueue(storageConnection, queueName);
+            var queue = await GetOrCreateQueue(queueName);
 
             var message = new CloudQueueMessage(messageContent);
             await queue.AddMessageAsync(message, null, visibilityDelay, null, null);
         }
 
-        private static async Task<CloudTable> GetOrCreateTable(string storageConnection, string tableName)
+        private static async Task<CloudTable> GetOrCreateTable(string tableName)
         {
-            var account = GetStorageAccount(storageConnection);
+            var account = GetStorageAccount();
 
             var client = account.CreateCloudTableClient();
 
@@ -71,21 +72,21 @@
             return table;
         }
 
-        private static CloudStorageAccount GetStorageAccount(string storageConnection)
+        private static CloudStorageAccount GetStorageAccount()
         {
-            return CloudStorageAccount.Parse(storageConnection);
+            return CloudStorageAccount.Parse(StorageConnectionString);
         }
 
-        private static async Task<CloudQueue> GetOrCreateQueue(string storageConnection, string queueName)
+        private static async Task<CloudQueue> GetOrCreateQueue(string queueName)
         {
-            var queue = GetQueueReference(storageConnection, queueName);
+            var queue = GetQueueReference(queueName);
             await queue.CreateIfNotExistsAsync();
             return queue;
         }
 
-        private static CloudQueue GetQueueReference(string storageConnection, string queueName)
+        private static CloudQueue GetQueueReference(string queueName)
         {
-            var account = GetStorageAccount(storageConnection);
+            var account = GetStorageAccount();
             var client = account.CreateCloudQueueClient();
             return client.GetQueueReference(queueName);
         }

@@ -1,4 +1,4 @@
-namespace Sharding
+namespace Sharding.Functions
 {
     using System;
     using System.Collections.Generic;
@@ -17,7 +17,10 @@ namespace Sharding
                                      TraceWriter log)
         {
             var recordsByYear = await GetRecordsByYear(blob);
+
             await WriteFilePerYear(binder, recordsByYear);
+
+            await StorageHelper.CreateYearRecords(recordsByYear.Keys);
         }
 
         private static async Task<Dictionary<string, List<string>>> GetRecordsByYear(Stream blob)
@@ -25,6 +28,9 @@ namespace Sharding
             var recordsByYear = new Dictionary<string, List<string>>();
             using (var sr = new StreamReader(blob))
             {
+                // Skip header row
+                await sr.ReadLineAsync();
+
                 while (!sr.EndOfStream)
                 {
                     var record = await sr.ReadLineAsync();
@@ -56,8 +62,16 @@ namespace Sharding
             {
                 var outputBlob = await binder.BindAsync<CloudBlockBlob>(new BlobAttribute($"olympic-data-by-year/{entry.Key}.csv"));
                 outputBlob.Properties.ContentType = "text/csv";
-                await outputBlob.UploadTextAsync(string.Join(Environment.NewLine, entry.Value));
+                await outputBlob.UploadTextAsync(
+                    GetHeaders() +
+                    Environment.NewLine + 
+                    string.Join(Environment.NewLine, entry.Value));
             }
+        }
+
+        private static string GetHeaders()
+        {
+            return "City,Sport,Discipline,Athlete,Country,Gender,Event,Medal";
         }
     }
 }

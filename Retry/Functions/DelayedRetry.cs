@@ -3,13 +3,13 @@ namespace Retry.Functions
     using System;
     using System.Linq;
     using System.Threading.Tasks;
+    using Common;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host;
 
     public static class DelayedRetry
     {
         private const string QueueName = "delayed-retry-demo";
-        private static readonly string StorageConnectionString = EnvironmentVariables.GetValue("AzureWebJobsStorage");
         private static readonly string LogTableName = EnvironmentVariables.GetValue("DelayedRetryLogTableName");
         private static readonly string MessageStatusTableName = EnvironmentVariables.GetValue("DelayedRetryMessageStatusTableName");
 
@@ -30,14 +30,13 @@ namespace Retry.Functions
                     .Select(int.Parse)
                     .ToArray();
 
-                var dequeueCount = await StorageHelper.GetMessageDequeueCount(message.Id, StorageConnectionString, MessageStatusTableName);
+                var dequeueCount = await StorageHelper.GetMessageDequeueCount(MessageStatusTableName, message.Id);
                 log.Info($"Processing message with Id: {message.Id}. Dequeue count: {dequeueCount}.");
 
                 var result = MessageHelper.PerformOperation(message);
 
                 var delay = visibilityTimeouts.Take(dequeueCount - 1).Sum();
-                await StorageHelper.LogMessageResult(message.Id, dequeueCount, delay, result,
-                    StorageConnectionString, LogTableName);
+                await StorageHelper.LogMessageResult(LogTableName, message.Id, dequeueCount, delay, result);
 
                 switch (result)
                 {
@@ -58,9 +57,9 @@ namespace Retry.Functions
                         {
                             log.Warning("Message with failed with tranisent error. Putting message back on queue for retrying");
 
-                            await StorageHelper.SaveMessageDequeueCount(message.Id, dequeueCount + 1, StorageConnectionString, MessageStatusTableName);
+                            await StorageHelper.SaveMessageDequeueCount(MessageStatusTableName, message.Id, dequeueCount + 1);
 
-                            await StorageHelper.AddToQueue(item, TimeSpan.FromSeconds(visibilityTimeouts[dequeueCount - 1]), StorageConnectionString, QueueName);
+                            await StorageHelper.AddToQueue(QueueName, item, TimeSpan.FromSeconds(visibilityTimeouts[dequeueCount - 1]));
                         }
 
                         break;

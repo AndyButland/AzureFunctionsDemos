@@ -1,4 +1,4 @@
-﻿namespace Retry
+﻿namespace Common
 {
     using System;
 
