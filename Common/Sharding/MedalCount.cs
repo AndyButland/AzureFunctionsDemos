@@ -1,4 +1,4 @@
-﻿namespace Sharding
+﻿namespace Common.Sharding
 {
     public class MedalCount
     {

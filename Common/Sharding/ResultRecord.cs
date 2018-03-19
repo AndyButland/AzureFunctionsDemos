@@ -1,4 +1,4 @@
-﻿namespace Sharding
+﻿namespace Common.Sharding
 {
     using Microsoft.WindowsAzure.Storage.Table;
 

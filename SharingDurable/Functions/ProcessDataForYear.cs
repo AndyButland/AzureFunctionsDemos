@@ -1,5 +1,6 @@
-namespace Sharding.Functions
+namespace Sharding.Durable.Functions
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
@@ -11,23 +12,15 @@ namespace Sharding.Functions
     public static class ProcessDataForYear
     {
         [FunctionName("ProcessDataForYear")]
-        public static async Task Run([BlobTrigger("olympic-data-by-year/{name}", Connection = "AzureWebJobsStorage")]Stream blob, 
-                                     string name,
-                                     [Queue("olympic-data", Connection = "AzureWebJobsStorage")] IAsyncCollector<string> outputQueue,
-                                     TraceWriter log)
+        public static Task<Dictionary<string, MedalCount>> Run([ActivityTrigger]List<string> records, TraceWriter log)
         {
-            var medalsPerCountry = GetMedalsPerCountry(blob);
-
-            var year = name.Replace(".csv", string.Empty);
-            await StorageHelper.UpdateYearRecords(year, medalsPerCountry);
-
-            await outputQueue.AddAsync(year);
+            return Task.FromResult(GetMedalsPerCountry(records));
         }
 
-        private static Dictionary<string, MedalCount> GetMedalsPerCountry(Stream blob)
+        private static Dictionary<string, MedalCount> GetMedalsPerCountry(IEnumerable<string> recordLines)
         {
             var medalsPerCountry = new Dictionary<string, MedalCount>();
-            var csv = new CsvReader(new StreamReader(blob));
+            var csv = new CsvReader(new StringReader(string.Join(Environment.NewLine, recordLines)));
             var records = csv.GetRecords<RecordDetail>();
 
             foreach (var record in records)

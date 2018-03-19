@@ -1,4 +1,4 @@
-namespace Sharding.Functions
+namespace Sharding.Durable.Functions
 {
     using System;
     using System.Collections.Generic;
@@ -9,38 +9,29 @@ namespace Sharding.Functions
     using Microsoft.Azure.WebJobs.Host;
     using Microsoft.WindowsAzure.Storage.Blob;
 
-    public static class ProcessDataForYearComplete
+    public static class WriteOutput
     {
-        [FunctionName("ProcessDataForYearComplete")]
-        public static async Task Run([QueueTrigger("olympic-data", Connection = "AzureWebJobsStorage")]string item,
+        [FunctionName("WriteOutput")]
+        public static async Task Run([ActivityTrigger]IEnumerable<Dictionary<string, MedalCount>> resultsPerYear,
                                      [Blob("olympic-data-results/results.csv", Connection = "AzureWebJobsStorage")]CloudBlockBlob outputBlob,
                                      TraceWriter log)
         {
-            var records = await StorageHelper.GetYearRecords();
-            if (records.Any(x => x.Value == null))
-            {
-                log.Info("Processing for all years not yet complete");
-                return;
-            }
-
-            log.Info("Processing for all years complete");
-
-            var overallResults = GetOverallResults(records);
+            var overallResults = GetOverallResults(resultsPerYear);
 
             outputBlob.Properties.ContentType = "text/csv";
             await outputBlob.UploadTextAsync(
-                GetHeaders() + 
-                Environment.NewLine + 
+                GetHeaders() +
+                Environment.NewLine +
                 string.Join(Environment.NewLine,
                     GetOrderedResults(overallResults)));
         }
 
-        private static Dictionary<string, MedalCount> GetOverallResults(Dictionary<string, Dictionary<string, MedalCount>> records)
+        private static Dictionary<string, MedalCount> GetOverallResults(IEnumerable<Dictionary<string, MedalCount>> resultsPerYear)
         {
             var results = new Dictionary<string, MedalCount>();
-            foreach (var yearEntry in records)
+            foreach (var resultPerYear in resultsPerYear)
             {
-                foreach (var countryEntry in yearEntry.Value)
+                foreach (var countryEntry in resultPerYear)
                 {
                     if (results.ContainsKey(countryEntry.Key))
                     {

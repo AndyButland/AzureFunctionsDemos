@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sharding", "Sharding\Shardi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{AC393620-7B05-402D-8BB1-A97B0EC74757}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sharding.Durable", "SharingDurable\Sharding.Durable.csproj", "{D5ECB773-9848-48F3-AE8B-6E2BEE4DD14D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{AC393620-7B05-402D-8BB1-A97B0EC74757}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AC393620-7B05-402D-8BB1-A97B0EC74757}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AC393620-7B05-402D-8BB1-A97B0EC74757}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5ECB773-9848-48F3-AE8B-6E2BEE4DD14D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5ECB773-9848-48F3-AE8B-6E2BEE4DD14D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5ECB773-9848-48F3-AE8B-6E2BEE4DD14D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5ECB773-9848-48F3-AE8B-6E2BEE4DD14D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

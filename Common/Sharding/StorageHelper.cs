@@ -1,11 +1,13 @@
-﻿namespace Sharding
+﻿namespace Common.Sharding
 {
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
     using Common;
+
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Table;
+
     using Newtonsoft.Json;
 
     public static class StorageHelper

@@ -1,26 +1,23 @@
-namespace Sharding.Functions
+namespace Sharding.Durable.Functions
 {
-    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
-    using Common.Sharding;
+    using Common;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host;
-    using Microsoft.WindowsAzure.Storage.Blob;
+    using Newtonsoft.Json;
 
-    public static class ShardData
+    public static class StartOrchestration
     {
-        [FunctionName("ShardData")]
-        public static async Task Run([BlobTrigger("olympic-data/{name}", Connection = "AzureWebJobsStorage")]Stream blob, 
-                                     Binder binder,
+        [FunctionName("StartOrchestration")]
+        public static async Task Run([BlobTrigger("olympic-data/{name}", Connection = "AzureWebJobsStorage")]Stream blob,
+                                     [OrchestrationClient] DurableOrchestrationClient starter,
                                      TraceWriter log)
         {
             var recordsByYear = await GetRecordsByYear(blob);
-
-            await StorageHelper.CreateYearRecords(recordsByYear.Keys);
-
-            await WriteFilePerYear(binder, recordsByYear);
+            var inputToOrchestration = SerializeAndCompress(recordsByYear);
+            await starter.StartNewAsync("Orchestration", inputToOrchestration);
         }
 
         private static async Task<Dictionary<string, List<string>>> GetRecordsByYear(Stream blob)
@@ -35,6 +32,8 @@ namespace Sharding.Functions
                 {
                     var record = await sr.ReadLineAsync();
                     var year = record.Substring(0, 4);
+
+                    // TODO: truncate to just country and medal using CSV helper
                     var restOfRecord = record.Substring(5);
 
                     AddRecordToYear(recordsByYear, year, restOfRecord);
@@ -56,22 +55,9 @@ namespace Sharding.Functions
             }
         }
 
-        private static async Task WriteFilePerYear(IBinder binder, Dictionary<string, List<string>> recordsByYear)
+        private static string SerializeAndCompress(Dictionary<string, List<string>> recordsByYear)
         {
-            foreach (var entry in recordsByYear)
-            {
-                var outputBlob = await binder.BindAsync<CloudBlockBlob>(new BlobAttribute($"olympic-data-by-year/{entry.Key}.csv"));
-                outputBlob.Properties.ContentType = "text/csv";
-                await outputBlob.UploadTextAsync(
-                    GetHeaders() +
-                    Environment.NewLine + 
-                    string.Join(Environment.NewLine, entry.Value));
-            }
-        }
-
-        private static string GetHeaders()
-        {
-            return "City,Sport,Discipline,Athlete,Country,Gender,Event,Medal";
+            return StringCompressor.CompressString(JsonConvert.SerializeObject(recordsByYear));
         }
     }
 }
