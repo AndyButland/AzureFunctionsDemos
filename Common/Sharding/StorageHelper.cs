@@ -4,10 +4,8 @@
     using System.Linq;
     using System.Threading.Tasks;
     using Common;
-
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Table;
-
     using Newtonsoft.Json;
 
     public static class StorageHelper
@@ -35,7 +33,7 @@
 
         public static async Task UpdateYearRecords(string year, Dictionary<string, MedalCount> results)
         {
-            var table = await GetTable();
+            var table = GetTable();
             var record = new ResultRecord
                 {
                     PartitionKey = "Summer",
@@ -49,9 +47,9 @@
 
         public static async Task<Dictionary<string, Dictionary<string, MedalCount>>> GetYearRecords()
         {
-            var table = await GetTable();
+            var table = GetTable();
             var query = new TableQuery<ResultRecord>();
-            var results = table.ExecuteQuery(query).ToList();
+            var results = await table.ExecuteQueryAsync(query);
             return results
                 .Select(x => new KeyValuePair<string, Dictionary<string, MedalCount>>(
                     x.RowKey, 
@@ -73,7 +71,7 @@
             return table;
         }
 
-        private static async Task<CloudTable> GetTable()
+        private static CloudTable GetTable()
         {
             var account = GetStorageAccount();
 

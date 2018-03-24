@@ -48,6 +48,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Chaining\OrderDetail.cs" />
+    <Compile Include="Chaining\OrderRecord.cs" />
+    <Compile Include="Chaining\StorageHelper.cs" />
     <Compile Include="Compression.cs" />
     <Compile Include="EnvironmentVariables.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -56,6 +59,7 @@
     <Compile Include="Sharding\RecordDetail.cs" />
     <Compile Include="Sharding\ResultRecord.cs" />
     <Compile Include="Sharding\StorageHelper.cs" />
+    <Compile Include="StorageExtensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

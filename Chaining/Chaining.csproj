@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net461</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>    
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.Azure.WebJobs.Extensions.SendGrid">
+      <HintPath>..\..\..\..\..\Users\abutl\.nuget\packages\microsoft.azure.webjobs.extensions.sendgrid\2.1.0\lib\net45\Microsoft.Azure.WebJobs.Extensions.SendGrid.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="SendGrid">
+      <HintPath>..\..\..\..\..\Users\abutl\.nuget\packages\sendgrid\9.9.0\lib\net452\SendGrid.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="host.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="local.settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+</Project>

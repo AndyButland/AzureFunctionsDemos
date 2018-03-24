@@ -2,11 +2,8 @@ namespace Timer.Functions
 {
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host;
-
     using Newtonsoft.Json;
-
     using SendGrid.Helpers.Mail;
-
     using Timer.Models;
 
     public static class SendEmail
