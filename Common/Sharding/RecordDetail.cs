@@ -2,6 +2,8 @@
 {
     public class RecordDetail : RecordDetailLite
     {
+        public string Year { get; set; }
+
         public string City { get; set; }
 
         public string Discipline { get; set; }

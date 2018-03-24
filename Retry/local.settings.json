@@ -1,0 +1,13 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "AzureWebJobsDashboard": "UseDevelopmentStorage=true",
+    "SimpleRetryLogTableName": "SimpleRetryDemoLog",
+    "DelayedRetryMessageStatusTableName": "DelayedRetryDemoMessageStatus",
+    "DelayedRetryLogTableName": "DelayedRetryDemoLog",
+
+    "MaxRetries": 5,
+    "VisibilityTimeoutsInSeconds": "5,10,20,60,120"   
+  }
+}

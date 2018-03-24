@@ -4,6 +4,8 @@ namespace Sharding.Durable.Functions
     using System.IO;
     using System.Threading.Tasks;
     using Common;
+    using Common.Sharding;
+    using CsvHelper;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host;
     using Newtonsoft.Json;
@@ -15,43 +17,42 @@ namespace Sharding.Durable.Functions
                                      [OrchestrationClient] DurableOrchestrationClient starter,
                                      TraceWriter log)
         {
-            var recordsByYear = await GetRecordsByYear(blob);
+            var recordsByYear = GetRecordsByYear(blob);
             var inputToOrchestration = SerializeAndCompress(recordsByYear);
             await starter.StartNewAsync("Orchestration", inputToOrchestration);
         }
 
-        private static async Task<Dictionary<string, List<string>>> GetRecordsByYear(Stream blob)
+        private static Dictionary<string, List<string>> GetRecordsByYear(Stream blob)
         {
             var recordsByYear = new Dictionary<string, List<string>>();
-            using (var sr = new StreamReader(blob))
+
+            var csv = new CsvReader(new StreamReader(blob));
+            var records = csv.GetRecords<RecordDetail>();
+
+            foreach (var record in records)
             {
-                // Skip header row
-                await sr.ReadLineAsync();
-
-                while (!sr.EndOfStream)
+                // Information transfer between functions goes via Azure storage queues which has a 64KB 
+                // size limit.  As UTF-16 is used, means a string must be less that 32KB.
+                // For the purposes of demonstration, we'll just shave off a few years to get under the limit.
+                if (int.Parse(record.Year) >= 1920)
                 {
-                    var record = await sr.ReadLineAsync();
-                    var year = record.Substring(0, 4);
-
-                    // TODO: truncate to just country and medal using CSV helper
-                    var restOfRecord = record.Substring(5);
-
-                    AddRecordToYear(recordsByYear, year, restOfRecord);
+                    AddRecordToYear(recordsByYear, record);
                 }
             }
 
             return recordsByYear;
         }
 
-        private static void AddRecordToYear(IDictionary<string, List<string>> recordsByYear, string year, string restOfRecord)
+        private static void AddRecordToYear(IDictionary<string, List<string>> recordsByYear, RecordDetail record)
         {
-            if (recordsByYear.ContainsKey(year))
+            var recordLite = $"{record.Country},{record.Medal.Substring(0, 1)}";
+            if (recordsByYear.ContainsKey(record.Year))
             {
-                recordsByYear[year].Add(restOfRecord);
+                recordsByYear[record.Year].Add(recordLite);
             }
             else
             {
-                recordsByYear.Add(year, new List<string> { restOfRecord });
+                recordsByYear.Add(record.Year, new List<string> { recordLite });
             }
         }
 

@@ -4,18 +4,22 @@ namespace Sharding.Durable.Functions
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Common;
     using Common.Sharding;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host;
     using Microsoft.WindowsAzure.Storage.Blob;
+    using Newtonsoft.Json;
 
     public static class WriteOutput
     {
         [FunctionName("WriteOutput")]
-        public static async Task Run([ActivityTrigger]IEnumerable<Dictionary<string, MedalCount>> resultsPerYear,
+        public static async Task Run([ActivityTrigger]DurableActivityContext ctx,
                                      [Blob("olympic-data-results/results.csv", Connection = "AzureWebJobsStorage")]CloudBlockBlob outputBlob,
                                      TraceWriter log)
         {
+            var input = ctx.GetInput<IEnumerable<string>>();
+            var resultsPerYear = DecompressAndDeserialize(input);
             var overallResults = GetOverallResults(resultsPerYear);
 
             outputBlob.Properties.ContentType = "text/csv";
@@ -24,6 +28,12 @@ namespace Sharding.Durable.Functions
                 Environment.NewLine +
                 string.Join(Environment.NewLine,
                     GetOrderedResults(overallResults)));
+        }
+
+        private static IEnumerable<Dictionary<string, MedalCount>> DecompressAndDeserialize(IEnumerable<string> input)
+        {
+            return input
+                .Select(x => JsonConvert.DeserializeObject<Dictionary<string, MedalCount>>(StringCompressor.DecompressString(x)));
         }
 
         private static Dictionary<string, MedalCount> GetOverallResults(IEnumerable<Dictionary<string, MedalCount>> resultsPerYear)

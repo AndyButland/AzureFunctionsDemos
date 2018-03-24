@@ -1,5 +1,6 @@
 namespace Sharding.Durable.Functions
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -16,23 +17,30 @@ namespace Sharding.Durable.Functions
                                      TraceWriter log)
         {
             var input = ctx.GetInput<string>();
-            var recordsByYear = DecompressAndDeserialize(input);
+            var recordsByYear = DecompressAndDeserializeFunctionInput(input);
+            Console.WriteLine($"Processing input for {recordsByYear.Count} years.");
 
-            var parallelTasks = new List<Task<Dictionary<string, MedalCount>>>();
+            var parallelTasks = new List<Task<string>>();
             foreach (var record in recordsByYear)
             {
-                var task = ctx.CallActivityAsync<Dictionary<string, MedalCount>>("ProcessDataForYear", record.Value);
+                var inputToActivity = SerializeAndCompress(record.Value);
+                var task = ctx.CallActivityAsync<string>("ProcessDataForYear", inputToActivity);
                 parallelTasks.Add(task);
             }
 
             await Task.WhenAll(parallelTasks);
 
-            await ctx.CallActivityAsync<IEnumerable<Dictionary<string, MedalCount>>>("WriteOutput", parallelTasks.Select(x => x.Result));
+            await ctx.CallActivityAsync<IEnumerable<string>>("WriteOutput", parallelTasks.Select(x => x.Result));
         }
 
-        private static Dictionary<string, List<string>> DecompressAndDeserialize(string input)
+        private static Dictionary<string, List<string>> DecompressAndDeserializeFunctionInput(string input)
         {
             return JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(StringCompressor.DecompressString(input));
+        }
+
+        private static string SerializeAndCompress(IEnumerable<string> recordsForYear)
+        {
+            return StringCompressor.CompressString(JsonConvert.SerializeObject(recordsForYear));
         }
     }
 }
